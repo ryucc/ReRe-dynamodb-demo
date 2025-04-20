@@ -5,13 +5,13 @@
 package org.example;
 
 import org.rere.api.ReRe;
+import org.rere.external.aws.ReReAws;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-import software.amazon.awssdk.protocols.jsoncore.JsonNode;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
@@ -28,20 +28,14 @@ import software.amazon.awssdk.services.dynamodb.model.ListTablesRequest;
 import software.amazon.awssdk.services.dynamodb.model.ListTablesResponse;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
-import software.amazon.awssdk.thirdparty.jackson.core.JsonFactory;
-import software.amazon.awssdk.thirdparty.jackson.core.JsonParser;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.rere.external.aws.ReReAws;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -50,11 +44,11 @@ public class Main {
                 .endpointOverride(URI.create("http://localhost:8000"))
                 // The region is meaningless for local DynamoDb but required for client builder validation
                 .region(Region.US_EAST_1)
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create("anyKey", "anySecret")))
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("anyKey",
+                        "anySecret")))
                 .build();
         ReRe reRe = new ReRe(ReReAws.defaultSettings());
-        DynamoDbClient reReDdb = reRe.createSpiedObject(ddb, DynamoDbClient.class);
+        DynamoDbClient reReDdb = reRe.createReReObject(ddb, DynamoDbClient.class);
         //createTable(ddb, "Movies");
         loadData(reReDdb, "Movies");
         listAllTables(reReDdb);
@@ -67,9 +61,7 @@ public class Main {
     }
 
     public static void loadData(DynamoDbClient ddb, String tableName) throws IOException {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder()
-                .dynamoDbClient(ddb)
-                .build();
+        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(ddb).build();
 
         DynamoDbTable<Movies> mappedTable = enhancedClient.table("Movies", TableSchema.fromBean(Movies.class));
         Movies movies = new Movies();
@@ -84,18 +76,11 @@ public class Main {
     public static void getItem(DynamoDbClient ddb) {
 
         HashMap<String, AttributeValue> keyToGet = new HashMap<>();
-        keyToGet.put("year", AttributeValue.builder()
-                .n("1933")
-                .build());
+        keyToGet.put("year", AttributeValue.builder().n("1933").build());
 
-        keyToGet.put("title", AttributeValue.builder()
-                .s("King Kong")
-                .build());
+        keyToGet.put("title", AttributeValue.builder().s("King Kong").build());
 
-        GetItemRequest request = GetItemRequest.builder()
-                .key(keyToGet)
-                .tableName("Movies")
-                .build();
+        GetItemRequest request = GetItemRequest.builder().key(keyToGet).tableName("Movies").build();
 
         try {
             Map<String, AttributeValue> returnedItem = ddb.getItem(request).item();
@@ -129,8 +114,7 @@ public class Main {
                     ListTablesRequest request = ListTablesRequest.builder().build();
                     response = ddb.listTables(request);
                 } else {
-                    ListTablesRequest request = ListTablesRequest.builder()
-                            .exclusiveStartTableName(lastName).build();
+                    ListTablesRequest request = ListTablesRequest.builder().exclusiveStartTableName(lastName).build();
                     response = ddb.listTables(request);
                 }
                 response.toBuilder().build();
@@ -157,32 +141,21 @@ public class Main {
         }
         System.out.println("\nDone!");
     }
+
     // Create a table with a Sort key.
     public static void createTable(DynamoDbClient ddb, String tableName) {
         DynamoDbWaiter dbWaiter = ddb.waiter();
         ArrayList<AttributeDefinition> attributeDefinitions = new ArrayList<>();
 
         // Define attributes.
-        attributeDefinitions.add(AttributeDefinition.builder()
-                .attributeName("year")
-                .attributeType("N")
-                .build());
+        attributeDefinitions.add(AttributeDefinition.builder().attributeName("year").attributeType("N").build());
 
-        attributeDefinitions.add(AttributeDefinition.builder()
-                .attributeName("title")
-                .attributeType("S")
-                .build());
+        attributeDefinitions.add(AttributeDefinition.builder().attributeName("title").attributeType("S").build());
 
         ArrayList<KeySchemaElement> tableKey = new ArrayList<>();
-        KeySchemaElement key = KeySchemaElement.builder()
-                .attributeName("year")
-                .keyType(KeyType.HASH)
-                .build();
+        KeySchemaElement key = KeySchemaElement.builder().attributeName("year").keyType(KeyType.HASH).build();
 
-        KeySchemaElement key2 = KeySchemaElement.builder()
-                .attributeName("title")
-                .keyType(KeyType.RANGE)
-                .build();
+        KeySchemaElement key2 = KeySchemaElement.builder().attributeName("title").keyType(KeyType.RANGE).build();
 
         // Add KeySchemaElement objects to the list.
         tableKey.add(key);
@@ -200,9 +173,7 @@ public class Main {
 
         try {
             CreateTableResponse response = ddb.createTable(request);
-            DescribeTableRequest tableRequest = DescribeTableRequest.builder()
-                    .tableName(tableName)
-                    .build();
+            DescribeTableRequest tableRequest = DescribeTableRequest.builder().tableName(tableName).build();
 
             // Wait until the Amazon DynamoDB table is created.
             WaiterResponse<DescribeTableResponse> waiterResponse = dbWaiter.waitUntilTableExists(tableRequest);

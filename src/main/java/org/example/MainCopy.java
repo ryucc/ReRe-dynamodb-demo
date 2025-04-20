@@ -41,8 +41,6 @@ public class MainCopy {
     public static void main(String[] args) throws IOException {
         System.out.println("Listing your Amazon DynamoDB tables:\n");
         DynamoDbClient ddb = ReReDynamoDbMockCreator.create();
-        //createTable(ddb, "Movies");
-        loadData(ddb, "Movies");
         listAllTables(ddb);
         getItem(ddb);
         ddb.close();
